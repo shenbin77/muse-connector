@@ -1,49 +1,46 @@
 @echo off
+chcp 65001 >nul
 cd /d "%~dp0"
 
-set "PYWEXE=C:\Users\Administrator\AppData\Local\Programs\Python\Python311\pythonw.exe"
-if not exist "%PYWEXE%" (
-  echo [´íÎó] Ã»ÕÒµ½ pythonw.exe
-  pause & exit /b 1
+echo ============================================
+echo  Muse è¿žæŽ¥åŠ©æ‰‹ - æ™ºèƒ½å¯åŠ¨
+echo ============================================
+echo.
+
+:: 1. å¯åŠ¨ win_agentï¼ˆå¦‚æžœæ²¡åœ¨è·‘ï¼‰
+tasklist /FI "IMAGENAME eq pythonw.exe" 2>nul | find /I "pythonw.exe" >nul
+if errorlevel 1 (
+    echo [1/2] å¯åŠ¨æœ¬åœ°æœåŠ¡...
+    start "" pythonw.exe win_agent.py
+    timeout /t 3 /nobreak >nul
+) else (
+    echo [1/2] æœ¬åœ°æœåŠ¡å·²åœ¨è¿è¡Œï¼Œè·³è¿‡
 )
 
-:: ---- Ð¡ÖúÊÖ£ºÒÑÔËÐÐ¾ÍÌø¹ý ----
-netstat -ano | findstr ":18789" | findstr "LISTENING" >nul 2>&1
-if %errorlevel%==0 goto agent_ok
+:: 2. å¯åŠ¨éš§é“ï¼ˆæ™ºèƒ½é€‰æ‹©æ¨¡å¼ï¼‰
+tasklist /FI "IMAGENAME eq cloudflared.exe" 2>nul | find /I "cloudflared.exe" >nul
+if not errorlevel 1 (
+    echo [2/2] éš§é“å·²åœ¨è¿è¡Œï¼Œè·³è¿‡
+    goto :done
+)
 
-echo [1/2] ºóÌ¨Æô¶¯ Hana Ð¡ÖúÊÖ£¨ÎÞ´°¿Ú£©...
-start "" "%PYWEXE%" "%~dp0win_agent.py"
-timeout /t 2 /nobreak >nul
-netstat -ano | findstr ":18789" | findstr "LISTENING" >nul 2>&1
-if %errorlevel%==0 goto agent_ok
-echo [´íÎó] Ð¡ÖúÊÖÆô¶¯Ê§°Ü£¬ÏêÇé¿´ D:\HanaAgent\agent.log
-pause & exit /b 1
+if exist "cloudflared-winagent.yml" (
+    echo [2/2] æ£€æµ‹åˆ°å›ºå®šéš§é“é…ç½®ï¼Œä½¿ç”¨å›ºå®šåŸŸåæ¨¡å¼...
+    start "Museéš§é“-å›ºå®š" cloudflared.exe tunnel --config "%~dp0cloudflared-winagent.yml" run
+) else (
+    echo [2/2] æœªæ£€æµ‹åˆ°éš§é“é…ç½®ï¼Œä½¿ç”¨å¿«é€Ÿéš§é“æ¨¡å¼ï¼ˆURL æ¯æ¬¡éšæœºï¼‰...
+    echo       å¦‚éœ€å›ºå®šåŸŸåï¼Œè¯·å¤åˆ¶ cloudflared-winagent.yml.example
+    echo       ä¸º cloudflared-winagent.yml å¹¶å¡«å…¥ä½ çš„éš§é“ä¿¡æ¯
+    echo.
+    start "Museéš§é“-å¿«é€Ÿ" cloudflared.exe tunnel --url http://localhost:18789
+)
 
-:agent_ok
-echo [Ð¡ÖúÊÖ] ÒÑ¾ÍÐ÷£¨18789 ¶Ë¿Ú¼àÌýÖÐ£©
-
-:: ---- ËíµÀ£ºÒÑÔËÐÐ¾ÍÌø¹ý ----
-powershell -NoProfile -Command "if (Get-CimInstance Win32_Process -Filter \"Name='cloudflared.exe'\" | Where-Object { $_.CommandLine -like '*cloudflared-winagent*' }) { exit 0 } else { exit 1 }" >nul 2>&1
-if %errorlevel%==0 goto tunnel_ok
-
-echo [2/2] ºóÌ¨Æô¶¯ cloudflared ËíµÀ£¨ÎÞ´°¿Ú£©...
-powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -FilePath 'D:\HanaAgent\cloudflared.exe' -ArgumentList 'tunnel --config D:\HanaAgent\cloudflared-winagent.yml --edge-ip-version 4 run' -WindowStyle Hidden -RedirectStandardError 'D:\HanaAgent\cloudflared-live.log'"
-goto tunnel_done
-
-:tunnel_ok
-echo [ËíµÀ] ÒÑÔÚÔËÐÐ
-
-:tunnel_done
+:done
 echo.
-echo ============================================================
-echo   ÒÑºóÌ¨Òþ²ØÆô¶¯£¨Ã»ÓÐÈÎºÎ´°¿Ú£©
-echo   ¹Ì¶¨ÍøÖ·: https://winagent.clawskill.cloud
-echo   Token:    D:\HanaAgent\token.txt
-echo   ÈÕÖ¾:     D:\HanaAgent\agent.log / cloudflared-live.log
-echo.
-echo   Í£Ö¹·þÎñ£ºË«»÷×ÀÃæ¡¸HanaÍ£Ö¹¡¹
-echo   ÖØÆôµçÄÔºó£ºË«»÷×ÀÃæ¡¸HanaÔ¶³ÌÖúÊÖ¡¹¼´¿É»Ö¸´
-echo ============================================================
-echo.
-echo 6 Ãëºó±¾´°¿Ú×Ô¶¯¹Ø±Õ...
-timeout /t 6 >nul
+echo ============================================
+echo  å¯åŠ¨å®Œæˆï¼
+echo  - æœ¬åœ°æœåŠ¡: http://localhost:18789
+echo  - æŸ¥çœ‹éš§é“ URL è¯·çœ‹ "Museéš§é“" çª—å£
+echo  - Token åœ¨ token.txtï¼Œé¦–æ¬¡è¿è¡Œå·²è‡ªåŠ¨ç”Ÿæˆ
+echo ============================================
+timeout /t 6 /nobreak >nul
