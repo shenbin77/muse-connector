@@ -34,6 +34,19 @@
 3. 窗口显示 Token，**复制发给你的 Muse**
 4. 保持窗口开着（或使用托盘版后台运行）
 
+### 远程访问（可选）- 双模式
+
+**快速隧道模式**（默认，零配置）：
+直接双击 `一键启动助手.bat`，自动使用 cloudflared 快速隧道。
+- 优点：无需注册、无需配置，开箱即用
+- 缺点：URL 每次随机（形如 `https://xxx.trycloudflare.com`），重启后需重新发给 Muse
+
+**固定域名模式**（进阶）：
+1. 注册 Cloudflare 账号，创建隧道：`cloudflared tunnel create <名字>`
+2. 复制 `src/cloudflared-winagent.yml.example` 为 `src/cloudflared-winagent.yml`
+3. 填入你的隧道 ID 和域名
+4. 双击 `一键启动助手.bat`，自动检测到配置文件并使用固定域名
+
 ### 远程访问（可选）
 
 如果你需要从外网访问：
