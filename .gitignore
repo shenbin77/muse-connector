@@ -1,0 +1,6 @@
+token.txt
+*.log
+__pycache__/
+*.pyc
+.cloudflared/
+config.local.yml
